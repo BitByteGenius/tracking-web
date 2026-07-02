@@ -1,0 +1,85 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "Apple MacBook Air M2",
+      "desc": "Apple MacBook Air with M2 chip offers exceptional performance, sleek design, and long battery life.",
+      "price": 95000,
+      "image": "https://m.media-amazon.com/images/I/71vFKBpKakL._SX679_.jpg",
+      "color": "#d4af37"
+    },
+    {
+        "id": 2,
+      "name": "Lenovo Thinkpad",
+      "desc": "Thinkpad is a series of business-oriented laptop computers and tablets designed, developed, marketed, and sold by Lenovo.",
+      "price": 50000,
+      "image": "https://m.media-amazon.com/images/I/71BY+Xg9OuL._SX522_.jpg",
+      "color": "#33505a"
+      
+    },
+    {
+      "id": 3,
+      "name": "Dell XPS 13",
+      "desc": "Dell XPS 13 features an infinity-edge display and powerful performance for productivity and entertainment.",
+      "price": 88000,
+      "image": "https://m.media-amazon.com/images/I/61TgK9fJD7L._AC_SL1500_.jpg",
+      "color": "#1e2a38"
+    },
+    {
+      "id": 4,
+      "name": "HP Spectre x360",
+      "desc": "HP Spectre x360 is a 2-in-1 laptop with premium build, touch screen, and strong performance.",
+      "price": 105000,
+      "image": "https://m.media-amazon.com/images/I/61Pm2jBbvrL._AC_SL1300_.jpg",
+      "color": "#4b3832"
+    },
+    {
+      "id": 5,
+      "name": "Asus ROG Zephyrus G14",
+      "desc": "Asus ROG Zephyrus G14 is a high-performance gaming laptop with a sleek design and powerful hardware.",
+      "price": 120000,
+      "image": "https://m.media-amazon.com/images/I/51D4dVoM30L.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "color": "#2d2d2d"
+    },
+    {
+      "id": 6,
+      "name": "Acer Swift 3",
+      "desc": "Acer Swift 3 offers lightweight portability, strong battery life, and fast performance for everyday tasks.",
+      "price": 65000,
+      "image": "https://m.media-amazon.com/images/I/51DF5B91M2L.__AC_SY300_SX300_QL70_FMwebp_.jpg",
+      "color": "#5f6a72"
+    },
+    {
+      "id": 7,
+      "name": "Microsoft Surface Laptop 5",
+      "desc": "Microsoft Surface Laptop 5 combines elegance, performance, and portability for productivity and creativity.",
+      "price": 110000,
+      "image": "https://m.media-amazon.com/images/I/71lVwl3q-kL._SX679_.jpg",
+      "color": "#6d7b8d"
+    },
+    {
+      "id": 8,
+      "name": "Razer Blade 15",
+      "desc": "Razer Blade 15 is a sleek gaming laptop with powerful graphics, advanced cooling, and premium build.",
+      "price": 145000,
+      "image": "https://m.media-amazon.com/images/I/71kBeFDgCkL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "color": "#000000"
+    },
+    {
+      "id": 9,
+      "name": "Samsung Galaxy Book3 Pro",
+      "desc": "Samsung Galaxy Book3 Pro offers an AMOLED display, lightweight design, and powerful performance.",
+      "price": 98000,
+      "image": "https://m.media-amazon.com/images/I/71kBeFDgCkL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "color": "#223344"
+    },
+    {
+      "id": 10,
+      "name": "LG Gram 17",
+      "desc": "LG Gram 17 is an ultra-lightweight laptop with a large display and long battery life for productivity.",
+      "price": 115000,
+      "image": "https://m.media-amazon.com/images/I/71kBeFDgCkL.__AC_SX300_SY300_QL70_FMwebp_.jpg",
+      "color": "#cccccc"
+    }
+  ]
+}
