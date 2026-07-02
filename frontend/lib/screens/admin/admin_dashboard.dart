@@ -240,6 +240,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               Text(user.email),
                               Text('${user.place}, ${user.city}'),
                               Text('${user.state}, ${user.country}'),
+                              Text('Latitude : ${user.latitude}'),
+                              Text('Longitude: ${user.longitude}'),
+                              Text('Speed    : ${user.speed.toStringAsFixed(2)} m/s'),
+                              Text('Accuracy : ${user.accuracy.toStringAsFixed(1)} m'),
                               Text(
                                 'Last Seen: ${DateFormat('dd MMM yyyy, hh:mm a').format(user.lastSeen.toLocal())}',
                                 style: const TextStyle(fontSize: 11),

@@ -1,4 +1,5 @@
 import Tracking from "../models/tracking.model.js";
+import axios from "axios";
 
 
 // =======================
@@ -6,7 +7,7 @@ import Tracking from "../models/tracking.model.js";
 // POST /api/tracking/start
 // =======================
 
-export const startTracking = async (req, res) => {
+/*export const startTracking = async (req, res) => {
   try {
     const userId = req.user.userId;
     console.log(`[startTracking] request received — userId: ${userId}`);
@@ -63,6 +64,126 @@ export const startTracking = async (req, res) => {
       data: tracking,
     });
   } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};*/
+// =======================
+// CHECK IN (Start Tracking)
+// POST /api/tracking/start
+// =======================
+
+export const startTracking = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    console.log(`[startTracking] request received — userId: ${userId}`);
+
+    const {
+      latitude,
+      longitude,
+      accuracy,
+      speed,
+      heading,
+    } = req.body;
+
+    // Validate required fields
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude are required.",
+      });
+    }
+
+    // Prevent duplicate check-in
+    const existing = await Tracking.findOne({
+      user: userId,
+      status: "Online",
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: "Already checked in. Please check out first.",
+      });
+    }
+
+    // ===========================
+    // TomTom Reverse Geocoding
+    // ===========================
+
+    let place = "";
+    let city = "";
+    let state = "";
+    let country = "";
+
+    try {
+      const response = await axios.get(
+        `https://api.tomtom.com/search/2/reverseGeocode/${latitude},${longitude}.json`,
+        {
+          params: {
+            key: process.env.TOMTOM_API_KEY,
+          },
+        }
+      );
+
+      const address = response.data?.addresses?.[0]?.address;
+
+      if (address) {
+        place = address.streetName || "";
+        city = address.municipality || "";
+        state = address.countrySubdivision || "";
+        country = address.country || "";
+      }
+
+      console.log("TomTom Address:", {
+        place,
+        city,
+        state,
+        country,
+      });
+
+    } catch (error) {
+      console.error(
+        "TomTom Reverse Geocoding Error:",
+        error.response?.data || error.message
+      );
+    }
+
+    // Save tracking
+    const tracking = await Tracking.findOneAndUpdate(
+      { user: userId },
+      {
+        user: userId,
+        latitude,
+        longitude,
+        accuracy,
+        speed,
+        heading,
+        place,
+        city,
+        state,
+        country,
+        status: "Online",
+        lastSeen: new Date(),
+      },
+      {
+        upsert: true,
+        returnDocument: "after",
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Checked in successfully",
+      data: tracking,
+    });
+
+  } catch (error) {
+    console.error("Start Tracking Error:", error);
+
     return res.status(500).json({
       success: false,
       message: error.message,

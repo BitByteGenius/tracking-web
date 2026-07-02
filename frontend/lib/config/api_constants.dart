@@ -11,8 +11,9 @@ class ApiConstants {
   ApiConstants._();
 
   /// ─── Change this to switch environments ───────────────────────────────
-  //static const String baseUrl = "http://10.0.2.2:3000/api";
-  static const String baseUrl = "http://localhost:3000/api";
+  //static const String baseUrl = "http://localhost:3000/api";
+  static const String baseUrl =
+    "https://tracking-web-mbsx.onrender.com/api";
 
   // Auth endpoints (relative to baseUrl)
   static const String login      = "/auth/login";
