@@ -4,6 +4,9 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import trackingRoutes from "./routes/tracking.route.js";
 
+// For attendance routes, we need to import the attendanceRoutes module and use it in the app. 
+import attendanceRoutes from "./routes/attendance.route.js";
+
 const app = express();
 
 // ─── Global Middleware ──────────────────────────────────────────────────────
@@ -15,6 +18,11 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+// ─── Routes ────────────────────────────────────────────────────────────────
+// Use the attendanceRoutes for all routes starting with /api/attendance
+app.use("/api/attendance", attendanceRoutes);
 
 // ─── Routes ────────────────────────────────────────────────────────────────
 // Auth routes were missing — login/register returned 404 before this fix.
