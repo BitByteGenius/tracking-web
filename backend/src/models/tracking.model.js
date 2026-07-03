@@ -55,10 +55,23 @@ const trackingSchema = new mongoose.Schema(
       default: "",
     },
 
+    // NEW
+    attendance: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Attendance",
+      default: null,
+    },
+
+    // NEW
+    totalDistanceKm: {
+      type: Number,
+      default: 0,
+    },
+
     status: {
       type: String,
       enum: ["Online", "Offline"],
-      default: "Online",
+      default: "Offline",
     },
 
     lastSeen: {

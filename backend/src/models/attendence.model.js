@@ -15,14 +15,40 @@ const attendanceSchema = new mongoose.Schema(
       index: true,
     },
 
+
+    // ===========================
+    // CHECK IN
+    // ===========================
+
     checkIn: {
-      time: Date,
+      time: {
+        type: Date,
+      },
 
-      latitude: Number,
+      latitude: {
+        type: Number,
+      },
 
-      longitude: Number,
+      longitude: {
+        type: Number,
+      },
 
-      address: {
+      place: {
+        type: String,
+        default: "",
+      },
+
+      city: {
+        type: String,
+        default: "",
+      },
+
+      state: {
+        type: String,
+        default: "",
+      },
+
+      country: {
         type: String,
         default: "",
       },
@@ -33,31 +59,79 @@ const attendanceSchema = new mongoose.Schema(
       },
     },
 
+    // ===========================
+    // CHECK OUT
+    // ===========================
+
     checkOut: {
-      time: Date,
+      time: {
+        type: Date,
+      },
 
-      latitude: Number,
+      latitude: {
+        type: Number,
+      },
 
-      longitude: Number,
+      longitude: {
+        type: Number,
+      },
 
-      address: {
+      place: {
+        type: String,
+        default: "",
+      },
+
+      city: {
+        type: String,
+        default: "",
+      },
+
+      state: {
+        type: String,
+        default: "",
+      },
+
+      country: {
         type: String,
         default: "",
       },
     },
+
+    // ===========================
+    // LIVE DISTANCE CALCULATION
+    // ===========================
+
+    lastLatitude: {
+      type: Number,
+      default: 0,
+    },
+
+    lastLongitude: {
+      type: Number,
+      default: 0,
+    },
+
+    totalDistanceKm: {
+      type: Number,
+      default: 0,
+    },
+
+    // ===========================
+    // WORKING TIME
+    // ===========================
 
     workingMinutes: {
       type: Number,
       default: 0,
     },
 
+    // ===========================
+    // STATUS
+    // ===========================
+
     status: {
       type: String,
-      enum: [
-        "Working",
-        "Present",
-        "Absent",
-      ],
+      enum: ["Working", "Present", "Absent"],
       default: "Working",
     },
   },
@@ -66,7 +140,7 @@ const attendanceSchema = new mongoose.Schema(
   }
 );
 
-// Prevent duplicate attendance for the same user on the same day
+// One attendance per user per day
 attendanceSchema.index(
   {
     user: 1,
@@ -76,5 +150,14 @@ attendanceSchema.index(
     unique: true,
   }
 );
+
+// Dashboard queries
+attendanceSchema.index({
+  status: 1,
+});
+
+attendanceSchema.index({
+  attendanceDate: 1,
+});
 
 export default mongoose.model("Attendance", attendanceSchema);

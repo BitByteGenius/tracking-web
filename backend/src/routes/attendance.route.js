@@ -1,18 +1,18 @@
 import express from "express";
 import protect from "../middleware/protect.js";
-import upload from "../middleware/upload.middleware.js";
 
 import {
-    checkIn,
+  getTodayAttendance,
+  getAttendanceHistory,
+  getAllAttendance,
 } from "../controllers/attendance.controller.js";
 
 const router = express.Router();
 
-router.post(
-    "/checkin",
-    protect,
-    upload.single("photo"),
-    checkIn
-);
+router.get("/today", protect, getTodayAttendance);
+router.get("/history", protect, getAttendanceHistory);
+
+// Admin
+router.get("/all", protect, getAllAttendance);
 
 export default router;

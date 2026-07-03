@@ -1,102 +1,97 @@
 import Attendance from "../models/attendance.model.js";
-import uploadToCloudinary from "../utils/uploadToCloudinary.js";
+import {
+  getAttendanceDate,
+  getCurrentDateTime,
+} from "../utils/date.js";
 
-export const checkIn = async (req, res) => {
-    try {
 
-        const userId = req.user.userId;
+// Helper to get today's date in India
+const attendanceDate = getAttendanceDate();
 
-        const {
-            latitude,
-            longitude,
-            address,
-        } = req.body;
+const now = getCurrentDateTime();
 
-        // Validate Photo
-        if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: "Selfie is required.",
-            });
-        }
+// ===============================
+// GET TODAY ATTENDANCE
+// GET /api/attendance/today
+// ===============================
+export const getTodayAttendance = async (req, res) => {
+  try {
+    const userId = req.user.userId;
 
-        // Validate GPS
-        if (!latitude || !longitude) {
-            return res.status(400).json({
-                success: false,
-                message: "Location is required.",
-            });
-        }
+    const attendance = await Attendance.findOne({
+      user: userId,
+      attendanceDate: getAttendanceDate(),
+    }).populate("user", "name email phone profileImage");
 
-        // Today's Date
-        const attendanceDate = new Date()
-            .toISOString()
-            .split("T")[0];
-
-        // Already Checked In?
-        const alreadyChecked = await Attendance.findOne({
-            user: userId,
-            attendanceDate,
-        });
-
-        if (alreadyChecked) {
-            return res.status(400).json({
-                success: false,
-                message: "You have already checked in today.",
-            });
-        }
-
-        // Upload Selfie
-        const uploadedImage = await uploadToCloudinary(
-            req.file.buffer,
-            "attendance"
-        );
-
-        // Save Attendance
-        const attendance = await Attendance.create({
-
-            user: userId,
-
-            attendanceDate,
-
-            checkIn: {
-
-                time: new Date(),
-
-                latitude,
-
-                longitude,
-
-                address,
-
-                selfie: uploadedImage.secure_url,
-            },
-
-            status: "Working",
-
-        });
-
-        return res.status(201).json({
-
-            success: true,
-
-            message: "Check In Successful",
-
-            data: attendance,
-
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: error.message,
-
-        });
-
+    if (!attendance) {
+      return res.status(200).json({
+        success: true,
+        checkedIn: false,
+        data: null,
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      checkedIn: attendance.status === "Working",
+      data: attendance,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// GET MY ATTENDANCE HISTORY
+// GET /api/attendance/history
+// ===============================
+export const getAttendanceHistory = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const attendance = await Attendance.find({
+      user: userId,
+    }).sort({
+      attendanceDate: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      total: attendance.length,
+      data: attendance,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// ADMIN ATTENDANCE
+// GET /api/attendance/all
+// ===============================
+export const getAllAttendance = async (req, res) => {
+  try {
+    const attendance = await Attendance.find()
+      .populate("user", "name email phone profileImage")
+      .sort({
+        attendanceDate: -1,
+      });
+
+    return res.status(200).json({
+      success: true,
+      total: attendance.length,
+      data: attendance,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };

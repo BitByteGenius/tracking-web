@@ -1,221 +1,231 @@
+
+
 import Tracking from "../models/tracking.model.js";
-import axios from "axios";
+import Attendance from "../models/attendance.model.js";
+import uploadToCloudinary from "../utils/uploadToCloudinary.js";
+import { reverseGeocode } from "../services/location.service.js";
+import { calculateDistance } from "../utils/distance.js";
+import {
+  getAttendanceDate,
+  getCurrentDateTime,
+} from "../utils/date.js";
 
 
-// =======================
-// CHECK IN  (Start Tracking)
-// POST /api/tracking/start
-// =======================
 
-/*export const startTracking = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    console.log(`[startTracking] request received — userId: ${userId}`);
-
-    const {
-      latitude,
-      longitude,
-      accuracy,
-      speed,
-      heading,
-      place,
-      city,
-      state,
-      country,
-    } = req.body;
-
-    // ── Duplicate check-in guard ──────────────────────────────────────────
-    // If this user already has an "Online" record, reject the second check-in.
-    const existing = await Tracking.findOne({ user: userId, status: "Online" });
-    console.log(`[startTracking] existing Online record: ${existing ? existing._id : "none"}`);
-    if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: "Already checked in. Please check out first.",
-      });
-    }
-
-    // Upsert the tracking document (create if first time, update if returning)
-    const tracking = await Tracking.findOneAndUpdate(
-      { user: userId },
-      {
-        user: userId,
-        latitude,
-        longitude,
-        accuracy,
-        speed,
-        heading,
-        place,
-        city,
-        state,
-        country,
-        status: "Online",
-        lastSeen: new Date(),
-      },
-      {
-        upsert: true,
-        new: true,
-      }
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Checked in successfully",
-      data: tracking,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};*/
-// =======================
-// CHECK IN (Start Tracking)
-// POST /api/tracking/start
-// =======================
 
 export const startTracking = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    console.log(`[startTracking] request received — userId: ${userId}`);
+   const latitude = Number(req.body.latitude);
+const longitude = Number(req.body.longitude);
+const accuracy = Number(req.body.accuracy || 0);
+const speed = Number(req.body.speed || 0);
+const heading = Number(req.body.heading || 0);
 
-    const {
-      latitude,
-      longitude,
-      accuracy,
-      speed,
-      heading,
-    } = req.body;
-
-    // Validate required fields
-    if (latitude == null || longitude == null) {
+    // -----------------------------
+    // Validation
+    // -----------------------------
+    if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Latitude and longitude are required.",
+        message: "Selfie is required.",
       });
     }
 
-    // Prevent duplicate check-in
-    const existing = await Tracking.findOne({
+    if (
+    Number.isNaN(latitude) ||
+    Number.isNaN(longitude)
+) {
+    return res.status(400).json({
+        success:false,
+        message:"Latitude and Longitude are required."
+    });
+}
+
+if (accuracy > 50) {
+    return res.status(400).json({
+        success:false,
+        message:"GPS accuracy is too low."
+    });
+}
+
+    // -----------------------------
+    // Attendance Date (India)
+    // -----------------------------
+    const attendanceDate = getAttendanceDate();
+
+const now = getCurrentDateTime();
+
+    // -----------------------------
+    // Already Checked In?
+    // -----------------------------
+    const alreadyChecked = await Attendance.findOne({
       user: userId,
-      status: "Online",
+      attendanceDate,
+      status: "Working",
     });
 
-    if (existing) {
+    if (alreadyChecked) {
       return res.status(409).json({
         success: false,
-        message: "Already checked in. Please check out first.",
+        message: "Already checked in.",
       });
     }
 
-    // ===========================
-    // TomTom Reverse Geocoding
-    // ===========================
+    // -----------------------------
+    // Upload Selfie
+    // -----------------------------
+    const uploaded = await uploadToCloudinary(
+      req.file.buffer,
+      "attendance"
+    );
 
-    let place = "";
-    let city = "";
-    let state = "";
-    let country = "";
+    // -----------------------------
+    // Reverse Geocode
+    // -----------------------------
+    
 
-    try {
-      const response = await axios.get(
-        `https://api.tomtom.com/search/2/reverseGeocode/${latitude},${longitude}.json`,
-        {
-          params: {
-            key: process.env.TOMTOM_API_KEY,
-          },
-        }
-      );
+    const location = await reverseGeocode(latitude, longitude);
 
-      const address = response.data?.addresses?.[0]?.address;
+const { place, city, state, country } = location;
 
-      if (address) {
-        place = address.streetName || "";
-        city = address.municipality || "";
-        state = address.countrySubdivision || "";
-        country = address.country || "";
-      }
+    // -----------------------------
+    // Create Attendance
+    // -----------------------------
+    const attendance = await Attendance.create({
+      user: userId,
 
-      console.log("TomTom Address:", {
+      attendanceDate,
+
+      checkIn: {
+        time: now,
+
+        latitude,
+
+        longitude,
+
         place,
+
         city,
+
         state,
+
         country,
-      });
 
-    } catch (error) {
-      console.error(
-        "TomTom Reverse Geocoding Error:",
-        error.response?.data || error.message
-      );
-    }
+        selfie: uploaded.secure_url,
+      },
 
-    // Save tracking
+      lastLatitude: latitude,
+
+      lastLongitude: longitude,
+
+      totalDistanceKm: 0,
+
+      status: "Working",
+    });
+
+    // -----------------------------
+    // Update Tracking
+    // -----------------------------
     const tracking = await Tracking.findOneAndUpdate(
-      { user: userId },
       {
         user: userId,
+      },
+      {
+        user: userId,
+
+        attendance: attendance._id,
+
         latitude,
+
         longitude,
+
         accuracy,
+
         speed,
+
         heading,
+
         place,
+
         city,
+
         state,
+
         country,
+
+        totalDistanceKm: 0,
+
         status: "Online",
-        lastSeen: new Date(),
+
+        lastSeen: now,
       },
       {
         upsert: true,
-        returnDocument: "after",
+        new: true,
       }
     );
 
     return res.status(200).json({
       success: true,
-      message: "Checked in successfully",
-      data: tracking,
+      message: "Check In Successful",
+
+      attendance,
+
+      tracking,
     });
 
   } catch (error) {
-    console.error("Start Tracking Error:", error);
+
+    console.log(error);
 
     return res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
+/////////////////
+// Update Tracking (Location Updates)
+/////////////////
 
-// =======================
-// UPDATE LOCATION
-// PUT /api/tracking/update
-// =======================
 
 export const updateTracking = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const update = {
-      ...req.body,
-      status: "Online",
-      lastSeen: new Date(),
-    };
+   const latitude = Number(req.body.latitude);
+const longitude = Number(req.body.longitude);
+const accuracy = Number(req.body.accuracy || 0);
+const speed = Number(req.body.speed || 0);
+const heading = Number(req.body.heading || 0);
 
-    const tracking = await Tracking.findOneAndUpdate(
-      {
-        user: userId,
-      },
-      update,
-      {
-        new: true,
-      }
-    );
+   if (
+  Number.isNaN(latitude) ||
+  Number.isNaN(longitude)
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Latitude and longitude are required.",
+  });
+}
+
+// Ignore inaccurate GPS
+if (accuracy > 50) {
+  return res.status(200).json({
+    success: true,
+    message: "Location ignored due to poor GPS accuracy.",
+  });
+}
+
+    // Find active tracking
+    const tracking = await Tracking.findOne({
+      user: userId,
+      status: "Online",
+    });
 
     if (!tracking) {
       return res.status(404).json({
@@ -224,13 +234,86 @@ export const updateTracking = async (req, res) => {
       });
     }
 
-    return res.json({
+    // Find today's attendance
+    const attendance = await Attendance.findOne({
+    user: userId,
+    attendanceDate: getAttendanceDate(),
+    status: "Working",
+});
+
+    if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: "Attendance record not found.",
+      });
+    }
+
+    // -------------------------
+    // Calculate distance (Haversine)
+    // -------------------------
+    const distanceKm = calculateDistance(
+  attendance.lastLatitude,
+  attendance.lastLongitude,
+  Number(latitude),
+  Number(longitude)
+);
+
+// Ignore movement under 10 meters
+const finalDistance = distanceKm < 0.01 ? 0 : distanceKm;
+    // -------------------------
+    // Reverse Geocode
+    // -------------------------
+    let place = tracking.place;
+let city = tracking.city;
+let state = tracking.state;
+let country = tracking.country;
+
+if (finalDistance >= 0.05) {
+    const location = await reverseGeocode(latitude, longitude);
+
+    place = location.place;
+    city = location.city;
+    state = location.state;
+    country = location.country;
+}
+    // -------------------------
+    // Update Attendance
+    // -------------------------
+    attendance.lastLatitude = latitude;
+    attendance.lastLongitude = longitude;
+    attendance.totalDistanceKm += finalDistance;
+
+    await attendance.save();
+
+    // -------------------------
+    // Update Tracking
+    // -------------------------
+    tracking.latitude = latitude;
+    tracking.longitude = longitude;
+    tracking.accuracy = accuracy;
+    tracking.speed = speed;
+    tracking.heading = heading;
+
+    tracking.place = place;
+    tracking.city = city;
+    tracking.state = state;
+    tracking.country = country;
+
+    tracking.totalDistanceKm = attendance.totalDistanceKm;
+    tracking.lastSeen = getCurrentDateTime();
+
+    await tracking.save();
+
+    return res.status(200).json({
       success: true,
       message: "Location updated",
+      totalDistanceKm: Number(attendance.totalDistanceKm.toFixed(3)),
       data: tracking,
     });
 
   } catch (error) {
+
+    console.error(error);
 
     return res.status(500).json({
       success: false,
@@ -241,34 +324,39 @@ export const updateTracking = async (req, res) => {
 };
 
 
-// =======================
-// CHECK OUT  (Stop Tracking)
-// POST /api/tracking/stop
-// =======================
+//-------------------
+//Stop Tracking (Check Out)
+//-------------------
+
 
 export const stopTracking = async (req, res) => {
   try {
-
     const userId = req.user.userId;
-    console.log(`[stopTracking] request received — userId: ${userId}`);
 
-    // Only update a document that is currently Online.
-    // If the user is already Offline (or has no record), return 404
-    // so the frontend knows the session did not exist / was already closed.
-    const tracking = await Tracking.findOneAndUpdate(
-      {
-        user: userId,
-        status: "Online",   // ← guard: only match an active session
-      },
-      {
-        status: "Offline",
-        lastSeen: new Date(),
-      },
-      {
-        new: true,
-      }
-    );
-    console.log(`[stopTracking] findOneAndUpdate result: ${tracking ? `found — new status: ${tracking.status}` : "null (no Online record matched)"}`);
+    const latitude = Number(req.body.latitude);
+const longitude = Number(req.body.longitude);
+
+   if (
+    Number.isNaN(latitude) ||
+    Number.isNaN(longitude)
+) {
+    return res.status(400).json({
+        success:false,
+        message:"Latitude and longitude are required.",
+    });
+} {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude are required.",
+      });
+    }
+
+    // Find active tracking
+    const attendance = await Attendance.findOne({
+    user: userId,
+    attendanceDate: getAttendanceDate(),
+    status: "Working",
+});
 
     if (!tracking) {
       return res.status(404).json({
@@ -277,82 +365,102 @@ export const stopTracking = async (req, res) => {
       });
     }
 
-    return res.json({
-      success: true,
-      message: "Checked out successfully",
-      data: tracking,
-    });
+    // Find attendance
+    const attendance = await Attendance.findById(tracking.attendance);
 
-  } catch (error) {
-
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-
-  }
-};
-
-
-// =======================
-// GET CURRENT USER STATUS
-// GET /api/tracking/status
-// Returns the authenticated user's own tracking record (Online or Offline).
-// The frontend calls this on app restart to sync _isTracking with reality.
-// =======================
-
-export const getMyStatus = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const tracking = await Tracking.findOne({ user: userId })
-      .populate("user", "name email phone profileImage");
-
-    if (!tracking) {
-      return res.json({
-        success: true,
-        status: "Offline",
-        data: null,
+    if (!attendance) {
+      return res.status(404).json({
+        success: false,
+        message: "Attendance record not found.",
       });
     }
 
-    return res.json({
+    // --------------------------
+    // Reverse Geocode
+    // --------------------------
+    const location = await reverseGeocode(latitude, longitude);
+
+const {
+  place,
+  city,
+  state,
+  country,
+} = location;
+    // --------------------------
+    // Save Checkout
+    // --------------------------
+    attendance.checkOut = {
+     time: getCurrentDateTime(),
+      latitude,
+      longitude,
+      place,
+      city,
+      state,
+      country,
+    };
+
+    // --------------------------
+    // Calculate Working Minutes
+    // --------------------------
+    const diff =
+      attendance.checkOut.time -
+      attendance.checkIn.time;
+
+    attendance.workingMinutes = Math.floor(
+      diff / 60000
+    );
+
+    attendance.status = "Present";
+
+    await attendance.save();
+
+    // --------------------------
+    // Stop Tracking
+    // --------------------------
+    tracking.status = "Offline";
+    tracking.lastSeen = getCurrentDateTime();
+
+    await tracking.save();
+
+    // --------------------------
+    // Format Hours
+    // --------------------------
+    const hours = Math.floor(
+      attendance.workingMinutes / 60
+    );
+
+    const minutes =
+      attendance.workingMinutes % 60;
+
+    return res.status(200).json({
       success: true,
-      status: tracking.status,
-      data: tracking,
+
+      message: "Checked out successfully",
+
+      workingMinutes:
+        attendance.workingMinutes,
+
+      workingHours:
+        `${hours}h ${minutes}m`,
+
+      totalDistanceKm:
+        Number(
+          attendance.totalDistanceKm.toFixed(2)
+        ),
+
+      attendance,
+
+      tracking,
     });
+
   } catch (error) {
+
+    console.error(error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
-  }
-};
 
-
-// =======================
-// ADMIN: GET LIVE USERS
-// GET /api/tracking/live
-// Returns only Online users, populated with user name/email.
-// =======================
-
-export const getAllTracking = async (req, res) => {
-  try {
-    const tracking = await Tracking.find({
-      status: "Online",
-    })
-      .populate("user", "name email phone profileImage")
-      .sort({ updatedAt: -1 });
-
-    return res.json({
-      success: true,
-      total: tracking.length,
-      data: tracking,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
 };

@@ -1,6 +1,7 @@
 import express from "express";
 import protect from "../middleware/protect.js";
 import adminOnly from "../middleware/admin.middleware.js";
+import upload from "../middleware/upload.middleware.js";
 
 import {
   startTracking,
@@ -12,21 +13,51 @@ import {
 
 const router = express.Router();
 
-router.post("/start", protect, startTracking);
+// ==========================
+// CHECK IN
+// ==========================
+router.post(
+  "/start",
+  protect,
+  upload.single("photo"),
+  startTracking
+);
 
-router.put("/update", protect, updateTracking);
+// ==========================
+// LIVE LOCATION UPDATE
+// ==========================
+router.put(
+  "/update",
+  protect,
+  updateTracking
+);
 
-router.post("/stop", protect, stopTracking);
+// ==========================
+// CHECK OUT
+// ==========================
+router.post(
+  "/stop",
+  protect,
+  stopTracking
+);
 
-// Current user's own status (used by frontend on app restart)
-router.get("/status", protect, getMyStatus);
+// ==========================
+// CURRENT USER STATUS
+// ==========================
+router.get(
+  "/status",
+  protect,
+  getMyStatus
+);
 
-// Admin Only
+// ==========================
+// ADMIN LIVE USERS
+// ==========================
 router.get(
   "/live",
   protect,
   adminOnly,
-  getAllTracking,
+  getAllTracking
 );
 
 export default router;
