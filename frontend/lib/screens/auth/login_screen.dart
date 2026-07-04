@@ -64,15 +64,16 @@ class _LoginScreenState extends State<LoginScreen>
     }
 
     if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            auth.errorMessage.isNotEmpty
-                ? auth.errorMessage
-                : "Invalid credentials",
-          ),
-          backgroundColor: Colors.red,
-        ),
+      Get.snackbar(
+        "Login Failed",
+        auth.errorMessage.isNotEmpty
+            ? auth.errorMessage
+            : "Invalid credentials",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        icon: const Icon(Icons.error_outline, color: Colors.white),
       );
     }
   }

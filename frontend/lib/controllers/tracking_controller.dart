@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -19,7 +19,7 @@ class TrackingController extends GetxController {
 
   bool _isTracking = false;
   bool _loading = false;
-  String _error = "";
+  String _error = '';
 
   Timer? _timer;
 
@@ -47,19 +47,19 @@ class TrackingController extends GetxController {
     _liveUsers = [];
     _isTracking = false;
     _loading = false;
-    _error = "";
+    _error = '';
     update();
   }
 
-  //──────────────────────────────────────────────
-  // Sync tracking status after login/app restart
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Sync tracking status after login / app restart
+  // ──────────────────────────────────────────────
   Future<void> syncStatus() async {
     try {
-      _error = "";
+      _error = '';
       final result = await _service.getMyStatus();
 
-      _isTracking = result.status == "Online";
+      _isTracking = result.status == 'Online';
       _currentTracking = result.tracking;
 
       if (_isTracking) {
@@ -73,23 +73,27 @@ class TrackingController extends GetxController {
     }
   }
 
-  //──────────────────────────────────────────────
-  // Start Tracking
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Start Tracking (Check In)
+  // Flow: GPS → Camera → Upload → Start timer
+  // ──────────────────────────────────────────────
   Future<void> startTracking() async {
-    try {
-      _setLoading(true);
-      _error = "";
+    _setLoading(true);
+    _error = '';
 
+    try {
+      // Step 1 – GPS
       final position = await _getCurrentPosition();
 
-      final photo = await _pickSelfie();
-
+      // Step 2 – Camera (front, direct, no gallery)
+      final photo = await _captureSelfie();
       if (photo == null) {
+        // User cancelled camera – stop gracefully, no error shown.
         _setLoading(false);
         return;
       }
 
+      // Step 3 – Upload + create attendance record
       _currentTracking = await _service.startTracking(
         photo: photo,
         latitude: position.latitude,
@@ -101,33 +105,57 @@ class TrackingController extends GetxController {
 
       _isTracking = true;
 
+      // Step 4 – Reload attendance data
       await Get.find<AttendanceController>().reload();
 
+      // Step 5 – Start 10-second location polling
       _startAutoUpdate();
+
+      Get.snackbar(
+        'Checked In',
+        'You are now being tracked. Have a great day!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.primary,
+        colorText: Get.theme.colorScheme.onPrimary,
+        duration: const Duration(seconds: 3),
+      );
 
       _setLoading(false);
     } catch (e) {
       final msg = _cleanError(e);
 
-      if (msg == "You are already checked in.") {
+      // "Already checked in" → just re-sync state instead of showing error.
+      if (msg.toLowerCase().contains('already checked in')) {
         await syncStatus();
+        _setLoading(false);
+        return;
       }
 
       _error = msg;
       _setLoading(false);
+
+      Get.snackbar(
+        'Check-In Failed',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        duration: const Duration(seconds: 4),
+      );
     }
   }
 
-  //──────────────────────────────────────────────
-  // Stop Tracking
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Stop Tracking (Check Out)
+  // ──────────────────────────────────────────────
   Future<void> stopTracking() async {
+    _setLoading(true);
+
+    // Stop the timer immediately so no stray updates fire.
+    _timer?.cancel();
+    _timer = null;
+
     try {
-      _setLoading(true);
-
-      _timer?.cancel();
-      _timer = null;
-
       final position = await _getCurrentPosition();
 
       await _service.stopTracking(
@@ -140,35 +168,52 @@ class TrackingController extends GetxController {
 
       await Get.find<AttendanceController>().reload();
 
-      _error = "";
+      _error = '';
       _setLoading(false);
+
+      Get.snackbar(
+        'Checked Out',
+        'Your session has been saved. Great work!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.primary,
+        colorText: Get.theme.colorScheme.onPrimary,
+        duration: const Duration(seconds: 3),
+      );
     } catch (e) {
-      _error = _cleanError(e);
+      final msg = _cleanError(e);
+      _error = msg;
       _setLoading(false);
+
+      Get.snackbar(
+        'Check-Out Failed',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Get.theme.colorScheme.error,
+        colorText: Get.theme.colorScheme.onError,
+        duration: const Duration(seconds: 4),
+      );
     }
   }
 
-  //──────────────────────────────────────────────
-  // Auto Update
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Auto location-update loop (every 10 s)
+  // ──────────────────────────────────────────────
   void _startAutoUpdate() {
     _timer?.cancel();
-
     _timer = Timer.periodic(
       AppConfig.locationUpdateInterval,
       (_) => updateLocation(),
     );
   }
 
-  //──────────────────────────────────────────────
-  // Update Location
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Push a single location update
+  // ──────────────────────────────────────────────
   Future<void> updateLocation() async {
     if (!_isTracking) return;
 
     try {
-      _error = "";
-
+      _error = '';
       final position = await _getCurrentPosition();
 
       _currentTracking = await _service.updateTracking(
@@ -181,21 +226,20 @@ class TrackingController extends GetxController {
 
       update();
     } catch (e) {
+      // Silent – location update failures are non-critical.
       _error = _cleanError(e);
       update();
     }
   }
 
-  //──────────────────────────────────────────────
-  // Fetch Live Users (Admin)
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Fetch Live Users (Admin only)
+  // ──────────────────────────────────────────────
   Future<void> fetchLiveUsers() async {
     try {
       _setLoading(true);
-
       _liveUsers = await _service.getLiveUsers();
-
-      _error = "";
+      _error = '';
       _setLoading(false);
     } catch (e) {
       _error = _cleanError(e);
@@ -203,63 +247,92 @@ class TrackingController extends GetxController {
     }
   }
 
-  //──────────────────────────────────────────────
-  // Get Current Location
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // GPS helper
+  // ──────────────────────────────────────────────
   Future<Position> _getCurrentPosition() async {
-    bool enabled = await Geolocator.isLocationServiceEnabled();
-
-    if (!enabled) {
-      throw Exception("Location service is disabled.");
+    // Web uses browser Geolocation API via geolocator – no OS service check.
+    if (!kIsWeb) {
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) {
+        throw Exception(
+          'Location services are disabled. Please enable GPS and try again.',
+        );
+      }
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
-
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-
     if (permission == LocationPermission.denied) {
-      throw Exception("Location permission denied.");
+      throw Exception(
+        'Location permission denied. Please allow location access.',
+      );
     }
-
     if (permission == LocationPermission.deniedForever) {
-      throw Exception("Location permission denied forever.");
+      throw Exception(
+        'Location permission is permanently denied. '
+        'Please enable it in your device settings.',
+      );
     }
 
     return Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.best,
-        timeLimit: Duration(seconds: 15),
+        timeLimit: Duration(seconds: 20),
       ),
     );
   }
 
-  //──────────────────────────────────────────────
-  // Capture Selfie
-  //──────────────────────────────────────────────
-  Future<File?> _pickSelfie() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 70,
-    );
+  // ──────────────────────────────────────────────
+  // Camera selfie capture
+  // • Android/iOS: opens front camera directly.
+  // • Web: image_picker uses the browser file-input which accepts camera on
+  //   supported browsers (Chrome/Safari on mobile). On desktop browsers that
+  //   don't expose a front-camera, we show a clear message and return null.
+  // ──────────────────────────────────────────────
+  Future<XFile?> _captureSelfie() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        imageQuality: 75,
+        maxWidth: 1080,
+        maxHeight: 1920,
+      );
+      return image; // null means user cancelled
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
 
-    if (image == null) return null;
+      // On Flutter Web, if the platform throws because camera is unavailable,
+      // surface a clear, actionable message instead of a raw exception.
+      if (kIsWeb &&
+          (msg.contains('not supported') ||
+              msg.contains('no camera') ||
+              msg.contains('notallowederror') ||
+              msg.contains('notfounderror'))) {
+        Get.snackbar(
+          'Camera Not Available',
+          'Direct camera capture is not supported in this browser. '
+              'Please use the mobile app for check-in.',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
+        );
+        return null;
+      }
 
-    return File(image.path);
+      // Re-throw so startTracking() shows the generic error snackbar.
+      rethrow;
+    }
   }
 
-  //──────────────────────────────────────────────
-  // Clean Error
-  //──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Clean error messages
+  // ──────────────────────────────────────────────
   String _cleanError(Object e) {
     final raw = e.toString();
-
-    if (raw.startsWith("Exception: ")) {
-      return raw.substring(11);
-    }
-
+    if (raw.startsWith('Exception: ')) return raw.substring(11);
     return raw;
   }
 }

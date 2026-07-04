@@ -92,65 +92,71 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
             body: RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _SummaryCard(
-                        icon: Icons.people,
-                        label: "Attendance Records",
-                        value: attendance.allAttendance.length.toString(),
-                      ),
-                      _SummaryCard(
-                        icon: Icons.location_on,
-                        label: "Live Users",
-                        value: tracking.liveUsers.length.toString(),
-                      ),
-                      _SummaryCard(
-                        icon: Icons.work_history,
-                        label: "Working",
-                        value: working.toString(),
-                      ),
-                      _SummaryCard(
-                        icon: Icons.verified,
-                        label: "Present",
-                        value: present.toString(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      labelText: "Search employees",
+              child: (tracking.loading && tracking.liveUsers.isEmpty)
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView(
+                      padding: const EdgeInsets.all(20),
+                      children: [
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _SummaryCard(
+                              icon: Icons.people,
+                              label: "Attendance Records",
+                              value: attendance.allAttendance.length.toString(),
+                            ),
+                            _SummaryCard(
+                              icon: Icons.location_on,
+                              label: "Live Users",
+                              value: tracking.liveUsers.length.toString(),
+                            ),
+                            _SummaryCard(
+                              icon: Icons.work_history,
+                              label: "Working",
+                              value: working.toString(),
+                            ),
+                            _SummaryCard(
+                              icon: Icons.verified,
+                              label: "Present",
+                              value: present.toString(),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _searchController,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.search),
+                            labelText: "Search employees",
+                          ),
+                          onChanged: (value) =>
+                              setState(() => _query = value.trim()),
+                        ),
+                        const SizedBox(height: 16),
+                        _MapCard(
+                          users: liveUsers,
+                          mapController: _mapController,
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: "Live Users",
+                          emptyText: "No employees are currently online",
+                          children: liveUsers
+                              .map((user) => _LiveUserTile(user: user))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionCard(
+                          title: "Attendance Overview",
+                          emptyText: "No attendance records found",
+                          children: records
+                              .take(30)
+                              .map((item) => _AttendanceTile(attendance: item))
+                              .toList(),
+                        ),
+                      ],
                     ),
-                    onChanged: (value) => setState(() => _query = value.trim()),
-                  ),
-                  const SizedBox(height: 16),
-                  _MapCard(users: liveUsers, mapController: _mapController),
-                  const SizedBox(height: 16),
-                  _SectionCard(
-                    title: "Live Users",
-                    emptyText: "No employees are currently online",
-                    children: liveUsers
-                        .map((user) => _LiveUserTile(user: user))
-                        .toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionCard(
-                    title: "Attendance Overview",
-                    emptyText: "No attendance records found",
-                    children: records
-                        .take(30)
-                        .map((item) => _AttendanceTile(attendance: item))
-                        .toList(),
-                  ),
-                ],
-              ),
             ),
           );
         },

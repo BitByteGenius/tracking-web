@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../controllers/tracking_controller.dart';
 
@@ -10,77 +11,26 @@ class TrackingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<TrackingController>(
       builder: (tracking) {
+        final current = tracking.currentTracking;
+        final isOnline = tracking.isTracking;
+
         return Scaffold(
-          appBar: AppBar(
-            title: const Text(
-              "Live Tracking",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            centerTitle: true,
-          ),
+          appBar: AppBar(title: const Text('Live Tracking'), centerTitle: true),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Card(
-                  elevation: 0,
-                  color: tracking.isTracking
-                      ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.red.withValues(alpha: 0.1),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: tracking.isTracking
-                              ? Colors.green
-                              : Colors.red,
-                          child: Icon(
-                            tracking.isTracking
-                                ? Icons.location_on
-                                : Icons.location_off,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Tracking Status",
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                tracking.isTracking ? "ONLINE" : "OFFLINE",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: tracking.isTracking
-                                      ? Colors.green
-                                      : Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                // ── Status banner ────────────────────────────────────────
+                _StatusBanner(isOnline: isOnline),
+                const SizedBox(height: 20),
+
+                // ── Location details ─────────────────────────────────────
                 Card(
                   elevation: 0,
                   color: Theme.of(
                     context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -97,136 +47,144 @@ class TrackingScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              "Current Location",
+                              'Current Location',
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
-                        const Divider(height: 30),
+                        const Divider(height: 28),
                         _InfoRow(
-                          title: "Latitude",
-                          value:
-                              tracking.currentTracking?.latitude
-                                  .toStringAsFixed(6) ??
-                              "--",
+                          label: 'Latitude',
+                          value: current?.latitude.toStringAsFixed(6) ?? '--',
                         ),
-
                         _InfoRow(
-                          title: "Longitude",
-                          value:
-                              tracking.currentTracking?.longitude
-                                  .toStringAsFixed(6) ??
-                              "--",
+                          label: 'Longitude',
+                          value: current?.longitude.toStringAsFixed(6) ?? '--',
                         ),
-
                         _InfoRow(
-                          title: "Accuracy",
-                          value:
-                              "${tracking.currentTracking?.accuracy.toStringAsFixed(2) ?? "--"} m",
+                          label: 'Accuracy',
+                          value: current == null
+                              ? '--'
+                              : '${current.accuracy.toStringAsFixed(1)} m',
                         ),
-
                         _InfoRow(
-                          title: "Speed",
-                          value:
-                              "${tracking.currentTracking?.speed.toStringAsFixed(2) ?? "--"} m/s",
+                          label: 'Speed',
+                          value: current == null
+                              ? '--'
+                              : '${current.speed.toStringAsFixed(1)} m/s',
                         ),
-
                         _InfoRow(
-                          title: "Heading",
-                          value:
-                              "${tracking.currentTracking?.heading.toStringAsFixed(2) ?? "--"}°",
+                          label: 'Heading',
+                          value: current == null
+                              ? '--'
+                              : '${current.heading.toStringAsFixed(0)}°',
                         ),
-
-                        // NEW
                         _InfoRow(
-                          title: "Distance",
-                          value:
-                              "${tracking.currentTracking?.totalDistanceKm.toStringAsFixed(2) ?? "0.00"} KM",
+                          label: 'Distance',
+                          value: current == null
+                              ? '0.00 km'
+                              : '${current.totalDistanceKm.toStringAsFixed(2)} km',
                         ),
-
-                        // NEW
+                        _InfoRow(label: 'Place', value: current?.place ?? '--'),
+                        _InfoRow(label: 'City', value: current?.city ?? '--'),
+                        _InfoRow(label: 'State', value: current?.state ?? '--'),
                         _InfoRow(
-                          title: "Place",
-                          value: tracking.currentTracking?.place ?? "--",
+                          label: 'Country',
+                          value: current?.country ?? '--',
                         ),
-
                         _InfoRow(
-                          title: "City",
-                          value: tracking.currentTracking?.city ?? "--",
-                        ),
-
-                        _InfoRow(
-                          title: "State",
-                          value: tracking.currentTracking?.state ?? "--",
-                        ),
-
-                        _InfoRow(
-                          title: "Country",
-                          value: tracking.currentTracking?.country ?? "--",
-                        ),
-
-                        // NEW
-                        _InfoRow(
-                          title: "Last Seen",
-                          value:
-                              tracking.currentTracking?.lastSeen.toString() ??
-                              "--",
+                          label: 'Last Seen',
+                          value: current == null
+                              ? '--'
+                              : DateFormat(
+                                  'dd MMM, hh:mm:ss a',
+                                ).format(current.lastSeen),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: tracking.isTracking
-                        ? Colors.red
-                        : Colors.green,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                const SizedBox(height: 28),
+
+                // ── Action button ─────────────────────────────────────────
+                SizedBox(
+                  height: 56,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: isOnline
+                          ? Colors.red.shade600
+                          : Colors.green.shade600,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                  ),
-                  icon: tracking.loading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
+                    onPressed: tracking.loading
+                        ? null
+                        : () {
+                            if (isOnline) {
+                              tracking.stopTracking();
+                            } else {
+                              tracking.startTracking();
+                            }
+                          },
+                    icon: tracking.loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Icon(
+                            isOnline ? Icons.stop_circle : Icons.play_circle,
                             color: Colors.white,
-                            strokeWidth: 2,
                           ),
-                        )
-                      : Icon(
-                          tracking.isTracking ? Icons.stop : Icons.play_arrow,
-                        ),
-                  label: Text(
-                    tracking.isTracking ? "CHECK OUT" : "CHECK IN",
-
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    label: Text(
+                      tracking.loading
+                          ? (isOnline ? 'Checking Out…' : 'Opening Camera…')
+                          : (isOnline ? 'Check Out' : 'Check In with Selfie'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-
-                  onPressed: tracking.loading
-                      ? null
-                      : () async {
-                          if (tracking.isTracking) {
-                            await tracking.stopTracking();
-                          } else {
-                            await tracking.startTracking();
-                          }
-                          if (tracking.error.isNotEmpty) {
-                            Get.snackbar(
-                              "Error",
-                              tracking.error,
-                              backgroundColor: Colors.red,
-                              colorText: Colors.white,
-                            );
-                          }
-                        },
                 ),
+
+                // ── Error display ─────────────────────────────────────────
+                if (tracking.error.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onErrorContainer,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              tracking.error,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -236,26 +194,89 @@ class TrackingScreen extends StatelessWidget {
   }
 }
 
+// ── Status Banner ─────────────────────────────────────────────────────────────
+
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({required this.isOnline});
+  final bool isOnline;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: isOnline
+          ? Colors.green.withValues(alpha: 0.12)
+          : Colors.red.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundColor: isOnline ? Colors.green : Colors.red,
+              child: Icon(
+                isOnline ? Icons.location_on : Icons.location_off,
+                color: Colors.white,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tracking Status',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isOnline ? 'ONLINE' : 'OFFLINE',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isOnline ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Info Row ──────────────────────────────────────────────────────────────────
+
 class _InfoRow extends StatelessWidget {
-  final String title;
+  const _InfoRow({required this.label, required this.value});
+  final String label;
   final String value;
-  const _InfoRow({required this.title, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 7),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            title,
+            label,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               color: Colors.grey,
             ),
           ),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );

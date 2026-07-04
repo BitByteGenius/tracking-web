@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../core/constants/api_constants.dart';
 import '../models/attendance_model.dart';
 import 'api_service.dart';
 
@@ -7,7 +8,7 @@ class AttendanceService {
   final Dio _dio = ApiService.instance.dio;
 
   Future<AttendanceModel?> getTodayAttendance() async {
-    final response = await _dio.get("/attendance/today");
+    final response = await _dio.get(ApiConstants.attendanceToday);
     final data = response.data["data"];
 
     if (data == null) {
@@ -18,7 +19,7 @@ class AttendanceService {
   }
 
   Future<List<AttendanceModel>> getHistory() async {
-    final response = await _dio.get("/attendance/history");
+    final response = await _dio.get(ApiConstants.attendanceHistory);
     final data = response.data["data"] as List? ?? const [];
 
     return data
@@ -27,7 +28,7 @@ class AttendanceService {
   }
 
   Future<List<AttendanceModel>> getAllAttendance() async {
-    final response = await _dio.get("/attendance/all");
+    final response = await _dio.get(ApiConstants.attendanceAll);
     final data = response.data["data"] as List? ?? const [];
 
     return data

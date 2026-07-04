@@ -45,19 +45,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Registration Successful"),
-          backgroundColor: Colors.green,
-        ),
+      Get.snackbar(
+        "Registration Successful",
+        "You have been registered successfully.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        icon: const Icon(Icons.check_circle, color: Colors.white),
       );
 
       Get.offAllNamed(
         auth.user?.isAdmin == true ? AppRoutes.admin : AppRoutes.home,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.errorMessage), backgroundColor: Colors.red),
+      Get.snackbar(
+        "Registration Failed",
+        auth.errorMessage,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade600,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        icon: const Icon(Icons.error_outline, color: Colors.white),
       );
     }
   }
