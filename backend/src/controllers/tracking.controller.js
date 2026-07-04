@@ -336,27 +336,21 @@ export const stopTracking = async (req, res) => {
     const latitude = Number(req.body.latitude);
 const longitude = Number(req.body.longitude);
 
-   if (
-    Number.isNaN(latitude) ||
-    Number.isNaN(longitude)
-) {
-    return res.status(400).json({
-        success:false,
-        message:"Latitude and longitude are required.",
-    });
-} {
-      return res.status(400).json({
-        success: false,
-        message: "Latitude and longitude are required.",
-      });
+    if (
+        Number.isNaN(latitude) ||
+        Number.isNaN(longitude)
+    ) {
+        return res.status(400).json({
+            success: false,
+            message: "Latitude and longitude are required.",
+        });
     }
 
     // Find active tracking
-    const attendance = await Attendance.findOne({
-    user: userId,
-    attendanceDate: getAttendanceDate(),
-    status: "Working",
-});
+    const tracking = await Tracking.findOne({
+        user: userId,
+        status: "Online",
+    });
 
     if (!tracking) {
       return res.status(404).json({
