@@ -1,13 +1,15 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 
+import 'attendance_controller.dart';
+import 'tracking_controller.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 
-class AuthProvider extends ChangeNotifier {
+class AuthController extends GetxController {
   final AuthService _authService = AuthService();
 
   UserModel? _user;
@@ -15,35 +17,36 @@ class AuthProvider extends ChangeNotifier {
   String _errorMessage = "";
   bool _isLoggedIn = false;
 
-  UserModel? get user         => _user;
-  bool        get isLoading   => _isLoading;
-  String      get errorMessage => _errorMessage;
-  bool        get isLoggedIn  => _isLoggedIn;
+  UserModel? get user => _user;
+  bool get isLoading => _isLoading;
+  String get errorMessage => _errorMessage;
+  bool get isLoggedIn => _isLoggedIn;
 
   void _setLoading(bool value) {
     _isLoading = value;
-    notifyListeners();
+    update();
   }
 
   void _setError(String message) {
     _errorMessage = message;
-    notifyListeners();
+    update();
+  }
+
+  void _resetState() {
+    _user = null;
+    _isLoggedIn = false;
+    _errorMessage = "";
+    _isLoading = false;
   }
 
   // ─── User Login ───────────────────────────────────────────────────────
-  // Sends email + password. Returns true on success, false on failure.
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
+    if (_isLoading) return false;
     try {
       _setLoading(true);
       _errorMessage = "";
 
-      final user = await _authService.login(
-        email: email,
-        password: password,
-      );
+      final user = await _authService.login(email: email, password: password);
 
       _user = user;
       _isLoggedIn = true;
@@ -57,12 +60,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ─── Admin Login ──────────────────────────────────────────────────────
-  // Sends email + password to /auth/admin-login.
-  // Returns true on success, false on failure.
   Future<bool> adminLogin({
     required String email,
     required String password,
   }) async {
+    if (_isLoading) return false;
     try {
       _setLoading(true);
       _errorMessage = "";
@@ -90,6 +92,7 @@ class AuthProvider extends ChangeNotifier {
     required String phone,
     required String password,
   }) async {
+    if (_isLoading) return false;
     try {
       _setLoading(true);
       _errorMessage = "";
@@ -113,7 +116,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ─── Auto Login (Splash screen) ──────────────────────────────────────
-  // Restores session from SharedPreferences if the stored JWT is still valid.
   Future<bool> autoLogin() async {
     try {
       final token = await StorageService.getToken();
@@ -127,9 +129,12 @@ class AuthProvider extends ChangeNotifier {
       final userString = await StorageService.getUser();
       if (userString == null) return false;
 
-      _user = UserModel.fromJson(jsonDecode(userString));
+      _user = UserModel.fromJson(
+        jsonDecode(userString) as Map<String, dynamic>,
+      );
       _isLoggedIn = true;
-      notifyListeners();
+      _errorMessage = "";
+      update();
       return true;
     } catch (_) {
       return false;
@@ -139,15 +144,19 @@ class AuthProvider extends ChangeNotifier {
   // ─── Logout ──────────────────────────────────────────────────────────
   Future<void> logout() async {
     await _authService.logout();
-    _user = null;
-    _isLoggedIn = false;
-    notifyListeners();
+    _resetState();
+    if (Get.isRegistered<TrackingController>()) {
+      Get.find<TrackingController>().reset();
+    }
+    if (Get.isRegistered<AttendanceController>()) {
+      Get.find<AttendanceController>().reset();
+    }
+    update();
   }
 
   // ─── Helper: extract readable message from Dio / generic errors ──────
   String _friendlyError(Object e) {
     final msg = e.toString();
-    // Dio wraps the server message inside DioException; strip the prefix.
     if (msg.contains("DioException")) {
       final start = msg.indexOf('"message"');
       if (start != -1) return msg.substring(start);

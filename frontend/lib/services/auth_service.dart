@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../config/api_constants.dart';
+import '../core/constants/api_constants.dart';
 import '../models/user_model.dart';
 import 'api_service.dart';
 import 'storage_service.dart';
@@ -18,10 +18,7 @@ class AuthService {
   }) async {
     final response = await _dio.post(
       ApiConstants.login,
-      data: {
-        "email": email,
-        "password": password,
-      },
+      data: {"email": email, "password": password},
     );
 
     final token = response.data["token"] as String;
@@ -45,10 +42,7 @@ class AuthService {
   }) async {
     final response = await _dio.post(
       ApiConstants.adminLogin,
-      data: {
-        "email": email,
-        "password": password,
-      },
+      data: {"email": email, "password": password},
     );
 
     final token = response.data["token"] as String;

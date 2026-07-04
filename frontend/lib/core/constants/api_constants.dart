@@ -12,20 +12,20 @@ class ApiConstants {
 
   /// ─── Change this to switch environments ───────────────────────────────
   //static const String baseUrl = "http://localhost:3000/api";
-  static const String baseUrl =
-    "https://tracking-web-mbsx.onrender.com/api";
+  static const String baseUrl = "https://tracking-web-mbsx.onrender.com/api";
 
   // Auth endpoints (relative to baseUrl)
-  static const String login      = "/auth/login";
-  static const String register   = "/auth/register";
+  static const String login = "/auth/login";
+  static const String register = "/auth/register";
   static const String adminLogin = "/auth/admin-login";
 
   // Tracking endpoints (relative to baseUrl)
-  static const String trackingStart  = "/tracking/start";
+  static const String trackingStart = "/tracking/start";
   static const String trackingUpdate = "/tracking/update";
-  static const String trackingStop   = "/tracking/stop";
-  static const String trackingStatus = "/tracking/status"; // own status (for app-restart sync)
-  static const String trackingLive   = "/tracking/live";
+  static const String trackingStop = "/tracking/stop";
+  static const String trackingStatus =
+      "/tracking/status"; // own status (for app-restart sync)
+  static const String trackingLive = "/tracking/live";
 
   static const Duration timeout = Duration(seconds: 30);
 }

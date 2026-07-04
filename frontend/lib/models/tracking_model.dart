@@ -1,26 +1,22 @@
 class TrackingModel {
   final String id;
-
   final String userId;
   final String name;
   final String email;
   final String phone;
-
   final double latitude;
   final double longitude;
-
   final double accuracy;
   final double speed;
   final double heading;
-
   final String place;
   final String city;
   final String state;
   final String country;
-
   final String status;
-
   final DateTime lastSeen;
+  final double totalDistanceKm;
+  final String attendanceId;
 
   TrackingModel({
     required this.id,
@@ -39,64 +35,46 @@ class TrackingModel {
     required this.country,
     required this.status,
     required this.lastSeen,
+    this.totalDistanceKm = 0.0,
+    this.attendanceId = "",
   });
 
   factory TrackingModel.fromJson(Map<String, dynamic> json) {
-    // "user" can be one of two shapes depending on the endpoint:
-    //
-    //   Populated   (GET /tracking/live, /tracking/status with .populate()):
-    //     { "_id": "...", "name": "Alice", "email": "...", ... }
-    //
-    //   Unpopulated (POST /tracking/start, /stop, /update — no .populate()):
-    //     "507f1f77bcf86cd799439011"   ← raw ObjectId string
-    //
-    // The original code always did `user["_id"]` which threw a NoSuchMethodError
-    // when user was a String, silently breaking syncStatus() and disabling
-    // the Check Out button.
     final rawUser = json["user"];
-    final Map<String, dynamic> userMap =
-        (rawUser is Map<String, dynamic>) ? rawUser : const {};
-
-    // When not populated, rawUser itself IS the userId string.
+    final Map<String, dynamic> userMap = (rawUser is Map<String, dynamic>)
+        ? rawUser
+        : const {};
     final String resolvedUserId = userMap.isNotEmpty
         ? (userMap["_id"]?.toString() ?? "")
         : (rawUser?.toString() ?? "");
 
     return TrackingModel(
       id: json["_id"]?.toString() ?? "",
-
       userId: resolvedUserId,
-
       name: userMap["name"]?.toString() ?? "",
-
       email: userMap["email"]?.toString() ?? "",
-
       phone: userMap["phone"]?.toString() ?? "",
-
-      latitude: (json["latitude"] ?? 0).toDouble(),
-
-      longitude: (json["longitude"] ?? 0).toDouble(),
-
-      accuracy: (json["accuracy"] ?? 0).toDouble(),
-
-      speed: (json["speed"] ?? 0).toDouble(),
-
-      heading: (json["heading"] ?? 0).toDouble(),
-
+      latitude: _double(json["latitude"]),
+      longitude: _double(json["longitude"]),
+      accuracy: _double(json["accuracy"]),
+      speed: _double(json["speed"]),
+      heading: _double(json["heading"]),
       place: json["place"]?.toString() ?? "",
-
       city: json["city"]?.toString() ?? "",
-
       state: json["state"]?.toString() ?? "",
-
       country: json["country"]?.toString() ?? "",
-
       status: json["status"]?.toString() ?? "Offline",
-
-      lastSeen: DateTime.tryParse(
-            json["lastSeen"]?.toString() ?? "",
-          ) ??
+      lastSeen:
+          DateTime.tryParse(json["lastSeen"]?.toString() ?? "")?.toLocal() ??
           DateTime.now(),
+      totalDistanceKm: _double(
+        json["totalDistanceKm"] ?? json["totalDistance"],
+      ),
+      attendanceId: json["attendance"] is Map<String, dynamic>
+          ? json["attendance"]["_id"]?.toString() ?? ""
+          : json["attendance"]?.toString() ??
+                json["attendanceId"]?.toString() ??
+                "",
     );
   }
 
@@ -113,6 +91,8 @@ class TrackingModel {
       "country": country,
       "status": status,
       "lastSeen": lastSeen.toIso8601String(),
+      "totalDistanceKm": totalDistanceKm,
+      "attendanceId": attendanceId,
     };
   }
 
@@ -128,6 +108,8 @@ class TrackingModel {
     String? country,
     String? status,
     DateTime? lastSeen,
+    double? totalDistanceKm,
+    String? attendanceId,
   }) {
     return TrackingModel(
       id: id,
@@ -146,8 +128,22 @@ class TrackingModel {
       country: country ?? this.country,
       status: status ?? this.status,
       lastSeen: lastSeen ?? this.lastSeen,
+      totalDistanceKm: totalDistanceKm ?? this.totalDistanceKm,
+      attendanceId: attendanceId ?? this.attendanceId,
     );
   }
 
   bool get isOnline => status == "Online";
+
+  String get address => [
+    place,
+    city,
+    state,
+    country,
+  ].where((part) => part.trim().isNotEmpty).join(", ");
+
+  static double _double(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? "") ?? 0;
+  }
 }

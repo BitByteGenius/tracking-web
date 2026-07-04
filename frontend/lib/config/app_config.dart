@@ -5,11 +5,9 @@ class AppConfig {
 
   static const bool enableLogs = true;
 
-  static const Duration locationUpdateInterval =
-      Duration(seconds: 5);
+  static const Duration locationUpdateInterval = Duration(seconds: 10);
 
-  static const Duration splashDuration =
-      Duration(seconds: 2);
+  static const Duration splashDuration = Duration(seconds: 2);
 
   // ── TomTom Maps API key ───────────────────────────────────────────────────
   // This key is intentionally in frontend config. Map tile requests originate

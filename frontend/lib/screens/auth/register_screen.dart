@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
-import '../../providers/auth_provider.dart';
+import '../../controllers/auth_controller.dart';
+import '../../core/routes/app_router.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -16,8 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _passwordController =
-      TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   bool _obscurePassword = true;
 
@@ -33,7 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final auth = context.read<AuthProvider>();
+    final auth = Get.find<AuthController>();
 
     final success = await auth.register(
       name: _nameController.text.trim(),
@@ -52,13 +52,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      Navigator.pushReplacementNamed(context, "/home");
+      Get.offAllNamed(
+        auth.user?.isAdmin == true ? AppRoutes.admin : AppRoutes.home,
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.errorMessage),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(auth.errorMessage), backgroundColor: Colors.red),
       );
     }
   }
@@ -72,16 +71,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       labelText: label,
       prefixIcon: Icon(icon),
       suffixIcon: suffix,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-
     return Scaffold(
       backgroundColor: const Color(0xffF4F7FA),
       body: Center(
@@ -98,14 +93,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   color: Colors.black12,
                   blurRadius: 15,
                   offset: Offset(0, 5),
-                )
+                ),
               ],
             ),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
-
                   const Icon(
                     Icons.person_add_alt_1,
                     size: 70,
@@ -116,10 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const Text(
                     "Create Account",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 8),
@@ -209,8 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         onPressed: () {
                           setState(() {
-                            _obscurePassword =
-                                !_obscurePassword;
+                            _obscurePassword = !_obscurePassword;
                           });
                         },
                       ),
@@ -233,49 +223,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   SizedBox(
                     width: double.infinity,
                     height: 52,
-                    child: ElevatedButton(
-                      onPressed:
-                          auth.isLoading ? null : _register,
-                      child: auth.isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
+                    child: GetBuilder<AuthController>(
+                      builder: (auth) => ElevatedButton(
+                        onPressed: auth.isLoading ? null : _register,
+                        child: auth.isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "REGISTER",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            )
-                          : const Text(
-                              "REGISTER",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 20),
 
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-
-                      const Text(
-                        "Already have an account?",
-                      ),
+                      const Text("Already have an account?"),
 
                       TextButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                          Get.back();
                         },
-                        child: const Text(
-                          "Login",
-                        ),
-                      )
+                        child: const Text("Login"),
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
 import '../../config/app_config.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/tracking_provider.dart';
+import '../../controllers/auth_controller.dart';
+import '../../core/routes/app_router.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,7 +13,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -21,35 +20,21 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLogin() async {
-    // Respect the configured splash duration before navigating
     await Future.delayed(AppConfig.splashDuration);
 
     if (!mounted) return;
 
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final auth = Get.find<AuthController>();
     final loggedIn = await auth.autoLogin();
 
     if (!mounted) return;
 
     if (loggedIn) {
-      // Sync tracking state with the backend BEFORE navigating to home,
-      // so _isTracking reflects the real MongoDB status (not always false).
-      // Skip sync for admin — they have no tracking record.
-      if (auth.user != null && !auth.user!.isAdmin) {
-        final tracking = Provider.of<TrackingProvider>(context, listen: false);
-        await tracking.syncStatus();
-      }
-
-      if (!mounted) return;
-
-      // Redirect admin to admin dashboard, regular users to home
-      if (auth.user != null && auth.user!.isAdmin) {
-        Navigator.pushReplacementNamed(context, "/admin");
-      } else {
-        Navigator.pushReplacementNamed(context, "/home");
-      }
+      Get.offAllNamed(
+        auth.user?.isAdmin == true ? AppRoutes.admin : AppRoutes.home,
+      );
     } else {
-      Navigator.pushReplacementNamed(context, "/login");
+      Get.offAllNamed(AppRoutes.login);
     }
   }
 
@@ -63,11 +48,8 @@ class _SplashScreenState extends State<SplashScreen> {
             Icon(Icons.location_on, size: 80, color: Colors.blue),
             SizedBox(height: 20),
             Text(
-              "Live Tracking",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+              'Live Tracking',
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 30),
             CircularProgressIndicator(),

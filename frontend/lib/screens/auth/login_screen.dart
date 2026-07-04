@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
-import '../../providers/auth_provider.dart';
+import '../../controllers/auth_controller.dart';
+import '../../core/routes/app_router.dart';
 
 /// Single login screen that supports both User and Admin login modes.
 /// Toggle between modes using the tab bar at the top of the form.
@@ -16,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _emailController    = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   late final TabController _tabController;
@@ -45,33 +46,31 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final auth     = context.read<AuthProvider>();
-    final email    = _emailController.text.trim();
+    final auth = Get.find<AuthController>();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    bool success;
-
-    if (_isAdminMode) {
-      success = await auth.adminLogin(email: email, password: password);
-    } else {
-      success = await auth.login(email: email, password: password);
-    }
+    final bool success = _isAdminMode
+        ? await auth.adminLogin(email: email, password: password)
+        : await auth.login(email: email, password: password);
 
     if (!mounted) return;
 
     if (success) {
-      // Route based on the role embedded in the returned UserModel
-      if (auth.user != null && auth.user!.isAdmin) {
-        Navigator.pushReplacementNamed(context, "/admin");
-      } else {
-        Navigator.pushReplacementNamed(context, "/home");
-      }
-    } else {
+      Get.offAllNamed(
+        auth.user?.isAdmin == true ? AppRoutes.admin : AppRoutes.home,
+      );
+      return;
+    }
+
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(auth.errorMessage.isNotEmpty
-              ? auth.errorMessage
-              : "Invalid credentials"),
+          content: Text(
+            auth.errorMessage.isNotEmpty
+                ? auth.errorMessage
+                : "Invalid credentials",
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -80,8 +79,6 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-
     return Scaffold(
       backgroundColor: const Color(0xffF5F7FB),
       body: Center(
@@ -208,32 +205,32 @@ class _LoginScreenState extends State<LoginScreen>
                       SizedBox(
                         width: double.infinity,
                         height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isAdminMode
-                                ? Colors.deepPurple
-                                : Colors.blue,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: GetBuilder<AuthController>(
+                          builder: (auth) => ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isAdminMode
+                                  ? Colors.deepPurple
+                                  : Colors.blue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          onPressed: auth.isLoading ? null : _submit,
-                          child: auth.isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                            onPressed: auth.isLoading ? null : _submit,
+                            child: auth.isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    _isAdminMode ? "ADMIN LOGIN" : "LOGIN",
+                                    style: const TextStyle(fontSize: 16),
                                   ),
-                                )
-                              : Text(
-                                  _isAdminMode
-                                      ? "ADMIN LOGIN"
-                                      : "LOGIN",
-                                  style: const TextStyle(fontSize: 16),
-                                ),
+                          ),
                         ),
                       ),
 
@@ -246,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen>
                             const Text("Don't have an account?"),
                             TextButton(
                               onPressed: () {
-                                Navigator.pushNamed(context, "/register");
+                                Get.toNamed(AppRoutes.register);
                               },
                               child: const Text("Register"),
                             ),

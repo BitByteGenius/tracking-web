@@ -1,21 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 
-import 'config/api_constants.dart';
-import 'providers/auth_provider.dart';
-import 'providers/tracking_provider.dart';
-import 'routes/app_router.dart';
-import 'theme/app_theme.dart';
+import 'bindings/app_binding.dart';
+import 'core/constants/api_constants.dart';
+import 'core/routes/app_router.dart';
+import 'core/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Log the active API endpoint in debug mode
-  assert(() {
-    // ignore: avoid_print
-    print("🌐 API Base URL: ${ApiConstants.baseUrl}");
-    return true;
-  }());
+  if (kDebugMode) {
+    debugPrint("API Base URL: ${ApiConstants.baseUrl}");
+  }
 
   runApp(const LiveTrackingApp());
 }
@@ -25,24 +22,16 @@ class LiveTrackingApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<AuthProvider>(
-          create: (_) => AuthProvider(),
-        ),
-        ChangeNotifierProvider<TrackingProvider>(
-          create: (_) => TrackingProvider(),
-        ),
-      ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: "Live Tracking System",
-        theme: AppTheme.lightTheme,
+    return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: "Live Tracking System",
+      theme: AppTheme.lightTheme,
 
-        // Named route navigation — see routes/app_router.dart
-        initialRoute: "/",
-        routes: AppRouter.routes,
-      ),
+      initialBinding: AppBinding(),
+
+      initialRoute: AppRoutes.splash,
+
+      getPages: AppRouter.pages,
     );
   }
 }
