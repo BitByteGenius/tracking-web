@@ -9,11 +9,11 @@ const attendanceSchema = new mongoose.Schema(
       index: true,
     },
 
+   
     attendanceDate: {
-      type: String,
-      required: true,
-      index: true,
-    },
+     type: String,
+     required: true,
+},
 
 
     // ===========================
@@ -140,7 +140,7 @@ const attendanceSchema = new mongoose.Schema(
   }
 );
 
-// One attendance per user per day
+/// One attendance per user per day
 attendanceSchema.index(
   {
     user: 1,
