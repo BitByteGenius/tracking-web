@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:http_parser/http_parser.dart';
+import 'dart:typed_data';
 
 import '../core/constants/api_constants.dart';
 import '../models/tracking_model.dart';
@@ -12,7 +13,8 @@ class TrackingService {
   // POST /api/tracking/start
   // Sends multipart/form-data: photo (binary) + location fields.
   Future<TrackingModel> startTracking({
-    required XFile photo,
+    required Uint8List photoBytes,
+    required String filename,
     required double latitude,
     required double longitude,
     required double accuracy,
@@ -20,16 +22,12 @@ class TrackingService {
     required double heading,
   }) async {
     try {
-      final bytes = await photo.readAsBytes();
-
-      // Use the original filename when available; fall back to a timestamped
-      // name so Cloudinary/multer never receives an empty filename.
-      final filename = photo.name.isNotEmpty
-          ? photo.name
-          : 'selfie_${DateTime.now().millisecondsSinceEpoch}.jpg';
-
       final formData = FormData.fromMap({
-        'photo': MultipartFile.fromBytes(bytes, filename: filename),
+        'photo': MultipartFile.fromBytes(
+          photoBytes,
+          filename: filename,
+          contentType: MediaType('image', 'jpeg'),
+        ),
         'latitude': latitude.toString(),
         'longitude': longitude.toString(),
         'accuracy': accuracy.toString(),
